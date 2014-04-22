@@ -1,0 +1,113 @@
+<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="js/tabletop-master/src/tabletop.js"></script>
+<script type="text/javascript" src="js/UIcontrol.js"></script>
+
+<link rel="stylesheet" type="text/css" href="GPLayout.css">
+
+<!--
+
+should redesign the interface to selectScript
+organize the code.
+
+-->
+
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>Grace Plains UI Admin Layout</title>
+</head>
+
+<body onload="onLoad()" onkeydown="documentKeydown(event)">
+<!-- Remove splitfromHelpDiv and helpDiv if help is no longer needed -->
+<div id="splitfromHelpDiv">
+
+	<div id="containerDiv">
+
+		<div id="topleftDiv">
+
+			<div id="scriptBoxDiv" class="boxClass">Script Box
+			</div>
+			<textarea id="inputBox" name="scriptInput" class="boxClass" value="Script box for input text" onkeydown="inputBoxKeydown(event)" onkeyup="inputBoxKeyup()"></textarea>
+
+			<div id="previewDiv" class="boxClass">Preview box for the text
+			</div>
+
+			<div id="liveDiv" class="boxClass">Live box for feedback from glass
+			</div>
+
+			<div id="sendButtonDiv">
+			<!-- registering onclick function later, not so used to JS's ways of doing things...no changed my mind, not gonna do that -->
+				<input type="button" value="send" onclick="sendClick()"></input>
+			</div>
+
+			<div id="loadScriptDiv">
+				<input type="button" value="refresh script" onclick="loadPhrase()"></input>
+				<!-- I'm imagining that the players (loaded from spreadsheet field) won't change in each modification by phrase editor.
+If there's change to the list of players in the spreadsheet, please reload the page instead. -->
+			</div>
+
+			<div id="loadHistoryDiv">
+				<input type="button" value="refresh history" onclick="loadHistory()"></input>
+			</div>
+
+			<div id="adminNameDiv">
+				<input type="text" value="admin" id="adminName"></input>
+			</div>
+
+		</div>
+
+		<div id="toprightDiv">
+
+			<div id="recipientDiv" class="boxClass">Recipient selection area: Names generated from whatever name in the script.
+			</div>
+
+			<div id="lockDiv" class="boxClass">Enable recipient area
+			</div>
+
+		</div>
+
+	</div>
+
+	<div id="historyDiv">
+		<textarea id="historyBox" class="boxClass" value="History" readonly></textarea>
+	</div>
+
+</div>
+
+<div id="helpDiv" class="boxClass">
+Shortcuts <br>
+(when focusing on scripts):
+<li> 'Arrow Up/Down': scroll</li>
+<li> 'Enter': send directly</li>
+<li> 'Space': focus on input box</li>
+<br>
+(when focusing on inputbox):
+<li> 'Enter': send</li>
+<br>
+(when focusing on anywhere on the page)
+<li> 'Ctrl + NumKey' check recipient</li>
+<br><br>
+Button 'send' : send and focus on nothing
+<br>
+Access pushed <a href="displayphrase.html?uid=" target="_blank">message</a>
+<br>
+Please fill out the uid in the link!
+<br>
+Access <a href="https://docs.google.com/spreadsheets/d/1iQIQsesjvS0z3glhf4uwJllt1J7khrrX2sLWTREAwR8/pubhtml" target="_blank">log</a>.
+<br>
+Access <a href="https://docs.google.com/spreadsheet/ccc?key=0AlW1a4Iy0WNvdFRHLVpiQjdyTTVzemdhT3ZYdmdGbWc&usp=drive_web#gid=0" target="_blank">phrase bank</a>.
+<br><br>
+Button 'refresh script' :<br> reload script from spreadsheet
+<br><br>
+Button 'refresh history' :<br> nothing happens
+<br><br>
+Reload page :<br> reload script and players from the spreadsheet
+<br><br>
+With all due credit to Alex's GlassChat web code.
+</div>
+
+</body>
+
+</html>

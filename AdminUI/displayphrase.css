@@ -1,0 +1,86 @@
+
+.content {
+	color: white;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 100pt;
+	font-weight: bold;
+	width: 100%;
+	height: 100%; 
+	background-color: black;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index:2;
+	overflow-y:scroll;
+}
+
+.glasslist{
+	color: white;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	font-weight: bold;
+	position: absolute;
+	height:50%;
+	width:50%;
+	top: 0px;
+	left: 0px;
+	z-index:2;
+	overflow:scroll;
+}
+
+.glasses {
+	color: white;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	font-weight: bold;
+	background-color: grey;
+	position: absolute;
+	height:40%;
+	width:50%;
+	top: 0px;
+	left: 0px;
+	z-index:2;
+	overflow:scroll;
+}
+
+.chat {
+	color: black;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 12pt;
+	font-weight: bold;
+	background-color: white;
+	position: absolute;
+	top: 15%;
+	left: 50%;
+	z-index:2;
+	overflow:scroll;
+}
+
+.glassview {
+	color: white;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 36pt;
+	font-weight: bold;
+	background-color: black;
+	position: absolute;
+	width: 640px;
+	height: 360px; 
+	top: 42%;
+	left: 0px;
+	z-index:2;
+	overflow:scroll;
+}
+
+
+.control{
+	color: grey;
+	font-family: Helvetica, Verdana, Arial, sans-serif;
+	font-size: 12pt;
+	font-weight: bold;
+	background-color: white;
+	position: absolute;
+	top: 0%;
+	left: 50%;
+	z-index:2;
+	overflow:scroll;
+}
