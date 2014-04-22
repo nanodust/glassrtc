@@ -33,6 +33,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Point;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings.Secure;
 import android.util.Log;
@@ -59,7 +60,6 @@ import org.webrtc.VideoRenderer;
 import org.webrtc.VideoRenderer.I420Frame;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
-
 import org.appspot.apprtc.R;
 
 import android.util.Log;
@@ -68,6 +68,10 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,7 +103,8 @@ public class AppRTCDemoActivity extends Activity
   private MediaConstraints sdpMediaConstraints;
 
   private static final String adminURL = "http://ether.remap.ucla.edu/glass/index.html?uid=";
-  private static final String roomBaseURL = "https://graceplains.appspot.com/?r=";
+  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&r=";
+  private static final String characterRecordURL = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/getContentFor?uid=";
   
   
   @Override
@@ -145,8 +150,7 @@ public class AppRTCDemoActivity extends Activity
 //    }
 // 	  showGetRoomUI();
     
-    int roomId=12345678;
-    connectToRoom(roomBaseURL+roomId);
+    (new ChatRoomIdGetter(this)).execute(getChraracterRecordUrl());
   }
 
   @Override
@@ -154,14 +158,28 @@ public class AppRTCDemoActivity extends Activity
       super.onStop();  
       
       Log.d(TAG, "disconnect from chat");
-      appRtcClient.disconnect();
+      disconnectAndExit();
+  }
+  
+  private String getGlassUid(){
+	  return Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
+  }
+  
+  private String getAdminUrl(){
+	  return adminURL+getGlassUid();
+  }
+  
+  private String getChraracterRecordUrl(){
+	  return characterRecordURL+getGlassUid();
+  }
+  
+  private void chatRoomIdReady(String chatRoomId){
+	  logAndToast("Connecting to room "+chatRoomId);
+	  connectToRoom(roomBaseURL+chatRoomId);
   }
   
   private void setUpMainWebView() {
 	  setContentView(R.layout.main);
-      
-      // get glass UID
-      String android_id = Secure.getString(this.getContentResolver(),Secure.ANDROID_ID);
       
       WebView engine = (WebView) findViewById(R.id.web_engine);
       WebChromeClient chromeClient = null;
@@ -171,13 +189,12 @@ public class AppRTCDemoActivity extends Activity
       engine.setWebViewClient(wvClient);
       engine.getSettings().setJavaScriptEnabled(true);
      
-      engine.loadUrl(adminURL+android_id);  
+      engine.loadUrl(getAdminUrl());  
   }
   
   private void showGetRoomUI() {
     final EditText roomInput = new EditText(this);
-    int roomId=62407083;
-    roomInput.setText("https://apprtc.appspot.com/?r="+roomId);
+    roomInput.setText("https://apprtc.appspot.com/?r=");
     roomInput.setSelection(roomInput.getText().length());
     DialogInterface.OnClickListener listener =
         new DialogInterface.OnClickListener() {
@@ -316,6 +333,7 @@ public class AppRTCDemoActivity extends Activity
       }
     }
     Log.d(TAG, "failed to open capturer");
+    logAndToast("Can't open camera. Overheat?");
     throw new RuntimeException("Failed to open capturer");
   }
 
@@ -610,6 +628,7 @@ public class AppRTCDemoActivity extends Activity
 
   // Disconnect from remote resources, dispose of local resources, and exit.
   private void disconnectAndExit() {
+	  Log.d(TAG, "disconnect and exit");
     synchronized (quit[0]) {
       if (quit[0]) {
         return;
@@ -661,5 +680,73 @@ public class AppRTCDemoActivity extends Activity
     public void renderFrame(I420Frame frame) {
       view.queueFrame(stream, frame);
     }
+  }
+  
+  // parses admin html in separate thread and retrieves chatRoomId from it
+  private class ChatRoomIdGetter extends AsyncTask<String, Void, String> {
+	private AppRTCDemoActivity listener;  
+  
+	public ChatRoomIdGetter(AppRTCDemoActivity listener) {
+		this.listener = listener;
+	}
+	
+	    @Override
+	    protected String doInBackground(String... urls) {
+	      if (urls.length != 1) {
+	        throw new RuntimeException("Must be called with a single URL");
+	      }
+	      try {
+	        return getChatRoomId(urls[0]);
+	      } catch (IOException e) {
+	        throw new RuntimeException(e);
+	      }
+	    }
+
+	    @Override
+	    protected void onPostExecute(String chatRoomId) {
+	      listener.chatRoomIdReady(chatRoomId);
+	    }
+	    
+	    private String getChatRoomId(String adminUrl) throws IOException {
+	  	  String chatRoomId = "12345678";
+	  	  
+	  	  try {
+	  		  InputStream is = (new URL(adminUrl)).openConnection().getInputStream();
+	  		  String characterJson =
+	  	          appRtcClient.drainStream(is);
+	  		JSONObject json = new JSONObject(characterJson);
+	  		chatRoomId = json.optString("chatroomID");
+	  	  }
+	  	  catch (RuntimeException e)
+	  	  {
+	  		  throw new RuntimeException(e);
+	  	  }
+	  	  catch (JSONException jex)
+	  	  {
+	  		  Log.d(listener.TAG, "json error");
+	  	  }
+	  	  
+	  	  return chatRoomId;
+	    }
+	    
+	    // borrowed from AppRtcClient... =)
+	    private String getVarValue(
+		        String roomHtml, String varName, boolean stripQuotes)
+		        throws IOException {
+		      final Pattern pattern = Pattern.compile(
+		          ".*\n *var " + varName + " = ([^\n]*);\n.*");
+		      Matcher matcher = pattern.matcher(roomHtml);
+		      if (!matcher.find()) {
+		        throw new IOException("Missing " + varName + " in HTML: " + roomHtml);
+		      }
+		      String varValue = matcher.group(1);
+		      if (matcher.find()) {
+		        throw new IOException("Too many " + varName + " in HTML: " + roomHtml);
+		      }
+		      if (stripQuotes) {
+		        varValue = varValue.substring(1, varValue.length() - 1);
+		      }
+		      return varValue;
+		    }
   }
 }

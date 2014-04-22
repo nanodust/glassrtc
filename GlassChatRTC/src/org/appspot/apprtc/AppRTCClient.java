@@ -237,7 +237,7 @@ public class AppRTCClient {
     // TODO(fischman): replace this hackery with a dedicated JSON-serving URL in
     // apprtc so that this isn't necessary (here and in other future apps that
     // want to interop with apprtc).
-    private AppRTCSignalingParameters getParametersForRoomUrl(String url)
+    public AppRTCSignalingParameters getParametersForRoomUrl(String url)
         throws IOException {
       final Pattern fullRoomPattern = Pattern.compile(
           ".*\n *Sorry, this room is full\\..*");
@@ -470,7 +470,7 @@ public class AppRTCClient {
   }
 
   // Return the contents of an InputStream as a String.
-  private static String drainStream(InputStream in) {
+  static String drainStream(InputStream in) {
     Scanner s = new Scanner(in).useDelimiter("\\A");
     return s.hasNext() ? s.next() : "";
   }
