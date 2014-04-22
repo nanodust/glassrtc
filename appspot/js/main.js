@@ -48,14 +48,14 @@ function initialize() {
   // Caller is always ready to create peerConnection.
   signalingReady = initiator;
 
-  if (mediaConstraints.audio === false &&
-      mediaConstraints.video === false) {
+//  if (mediaConstraints.audio === false &&
+//      mediaConstraints.video === false) {
     hasLocalStream = false;
     maybeStart();
-  } else {
-    hasLocalStream = true;
-    doGetUserMedia();
-  }
+//  } else {
+//    hasLocalStream = true;
+//    doGetUserMedia();
+//  }
 }
 
 function openChannel() {
