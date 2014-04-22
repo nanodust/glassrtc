@@ -188,6 +188,9 @@ class Room(db.Model):
   user2 = db.StringProperty()
   user1_connected = db.BooleanProperty(default=False)
   user2_connected = db.BooleanProperty(default=False)
+  user1_isglass = db.BooleanProperty(default=False)
+  user2_isglass = db.BooleanProperty(default=False)
+  
 
   def __str__(self):
     result = '['
@@ -217,11 +220,13 @@ class Room(db.Model):
   def has_user(self, user):
     return (user and (user == self.user1 or user == self.user2))
 
-  def add_user(self, user):
+  def add_user(self, user, isglass):
     if not self.user1:
       self.user1 = user
+      self.user1_isglass = isglass
     elif not self.user2:
       self.user2 = user
+      self.user2_isglass = isglass
     else:
       raise RuntimeError('room is full')
     self.put()
@@ -231,15 +236,19 @@ class Room(db.Model):
     if user == self.user2:
       self.user2 = None
       self.user2_connected = False
+      self.user2_isglass = False
     if user == self.user1:
       if self.user2:
         self.user1 = self.user2
         self.user1_connected = self.user2_connected
+        self.user1_isglass = self.user2_isglass
         self.user2 = None
         self.user2_connected = False
+        self.user2_isglass = False
       else:
         self.user1 = None
         self.user1_connected = False
+        self.user1_isglass = False
     if self.get_occupancy() > 0:
       self.put()
     else:
@@ -257,6 +266,25 @@ class Room(db.Model):
       return self.user1_connected
     if user == self.user2:
       return self.user2_connected
+      
+  def has_glass_user(self):
+    if self.user1 or self.user2:
+      return self.user1_isglass or self.user2_isglass
+      
+  def remove_disconnected(self):
+    if self.user2 and not self.user2_connected:
+      logging.info('user2 is disconnected - remove him')
+      self.remove_user(self.user2)
+    if self.user1 and not self.user1_connected:
+      logging.info('user1 is disconnected - remove him')
+      self.remove_user(self.user1)
+
+  def remove_staled_glass_user(self):
+    if self.get_occupancy() == 2:
+      if self.user2 and self.user2_connected and self.user2_isglass:
+        self.remove_user(self.user2)
+      if self.user1 and self.user1_connected and self.user1_isglass:
+        self.remove_user(self.user1)
 
 @db.transactional
 def connect_user_to_room(room_key, user):
@@ -400,6 +428,12 @@ class MainPage(webapp2.RequestHandler):
       # Always create a new room for the unit tests.
       room_key = generate_random(8)
 
+    glassuser = self.request.get('glass')
+    if not glassuser:
+      isglass = False
+    else:
+      isglass = True
+
     if not room_key:
       room_key = generate_random(8)
       redirect = '/?r=' + room_key
@@ -412,11 +446,24 @@ class MainPage(webapp2.RequestHandler):
     initiator = 0
     with LOCK:
       room = Room.get_by_key_name(room_key)
+      
+      # check if room already created - re-create it
+      if room:
+        logging.info('room: '+ room_key + ' occupancy: '+str(room.get_occupancy()))
+        room.remove_disconnected();
+        room.remove_staled_glass_user();
+    
+      #if not glassuser and room and room.get_occupancy() > 0:
+      #  logging.info('deleting room ' + room_key)
+      #  room.delete();
+      
       if not room and debug != "full":
         # New room.
+        logging.info('creating new room');
         user = generate_random(8)
+        
         room = Room(key_name = room_key)
-        room.add_user(user)
+        room.add_user(user, isglass)
         if debug != 'loopback':
           initiator = 0
         else:
@@ -424,11 +471,20 @@ class MainPage(webapp2.RequestHandler):
           initiator = 1
       elif room and room.get_occupancy() == 1 and debug != 'full':
         # 1 occupant.
-        user = generate_random(8)
-        room.add_user(user)
-        initiator = 1
+        logging.info('1 occupant. join');
+        if room.has_glass_user() or isglass:
+          if not isglass:
+            logging.info('has glass user. join him')
+          
+          user = generate_random(8)
+          room.add_user(user, isglass)
+          initiator = 1          
+        else:
+          logging.info('already connected browser user')
+          return
       else:
         # 2 occupants (full).
+        logging.info('room is full (should not occur)');        
         template = jinja_environment.get_template('full.html')
         self.response.out.write(template.render({ 'room_key': room_key }))
         logging.info('Room ' + room_key + ' is full')
