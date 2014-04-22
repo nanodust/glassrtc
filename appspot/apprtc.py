@@ -452,7 +452,13 @@ class MainPage(webapp2.RequestHandler):
         logging.info('room: '+ room_key + ' occupancy: '+str(room.get_occupancy()))
         room.remove_disconnected();
         room.remove_staled_glass_user();
-    
+        logging.info('Room ' + room_key + ' has state after cleanup' + str(room))
+        if room.get_occupancy() == 0:
+          logging.info('room '+room_key+'deleted')
+          room.delete()
+          room = None
+        
+        
       #if not glassuser and room and room.get_occupancy() > 0:
       #  logging.info('deleting room ' + room_key)
       #  room.delete();
