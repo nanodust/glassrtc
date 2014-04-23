@@ -124,8 +124,7 @@ function onTurnResult() {
 
 function resetStatus() {
   if (!initiator) {
-    setStatus('Waiting for someone to join: \
-              <a href=' + roomLink + '>' + roomLink + '</a>');
+    setStatus('Room '+roomKey+': waiting for glass...');
   } else {
     setStatus('Initializing...');
   }
@@ -313,6 +312,7 @@ function onChannelMessage(message) {
       msgQueue.push(msg);
     }
   } else {
+    console.log('processing message')
     processSignalingMessage(msg);
   }
 }
@@ -448,8 +448,7 @@ function transitionToActive() {
   setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
   // Reset window display according to the asperio of remote video.
   window.onresize();
-  setStatus('<input type=\'button\' id=\'hangup\' value=\'Hang up\' \
-            onclick=\'onHangup()\' />');
+  setStatus('On air');
 }
 
 function transitionToWaiting() {

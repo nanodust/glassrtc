@@ -68,6 +68,7 @@ def make_pc_config(stun_server, turn_server, ts_pwd):
 
 def create_channel(room, user, duration_minutes):
   client_id = make_client_id(room, user)
+  logging.info('channel id: '+client_id)
   return channel.create_channel(client_id, duration_minutes)
 
 def make_loopback_answer(message):
@@ -271,11 +272,11 @@ class Room(db.Model):
     if self.user1 or self.user2:
       return self.user1_isglass or self.user2_isglass
       
-  def remove_disconnected(self):
-    if self.user2 and not self.user2_connected:
+  def remove_disconnected(self, isglass):
+    if self.user2 and not self.user2_connected and self.user2_isglass == isglass:
       logging.info('user2 is disconnected - remove him')
       self.remove_user(self.user2)
-    if self.user1 and not self.user1_connected:
+    if self.user1 and not self.user1_connected and self.user1_isglass == isglass:
       logging.info('user1 is disconnected - remove him')
       self.remove_user(self.user1)
 
@@ -449,10 +450,10 @@ class MainPage(webapp2.RequestHandler):
       
       # check if room already created - re-create it
       if room:
-        logging.info('room: '+ room_key + ' occupancy: '+str(room.get_occupancy()))
-        room.remove_disconnected();
+        logging.info('room: '+ room_key + ' occupancy: '+str(room.get_occupancy())+' '+str(room))
+        room.remove_disconnected(isglass);
         room.remove_staled_glass_user();
-        logging.info('Room ' + room_key + ' has state after cleanup' + str(room))
+        logging.info('Room ' + room_key + ' has state after cleanup ' + str(room))
         if room.get_occupancy() == 0:
           logging.info('room '+room_key+'deleted')
           room.delete()
@@ -525,6 +526,9 @@ class MainPage(webapp2.RequestHandler):
                        'audio_send_codec': audio_send_codec,
                        'audio_receive_codec': audio_receive_codec
                       }
+    
+    logging.info('channel token: '+token);
+                      
     if unittest:
       target_page = 'test/test_' + unittest + '.html'
     else:
