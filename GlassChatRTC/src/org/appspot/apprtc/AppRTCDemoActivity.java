@@ -101,16 +101,18 @@ public class AppRTCDemoActivity extends Activity
   // Synchronize on quit[0] to avoid teardown-related crashes.
   private final Boolean[] quit = new Boolean[] { false };
   private MediaConstraints sdpMediaConstraints;
+private boolean active;
 
   private static final String adminURL = "http://ether.remap.ucla.edu/glass/index.html?uid=";
-  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&r=";
+  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&&video=maxWidth=320,maxHeight=180&r="; // "http://128.97.152.52:8080/?r="; 
   private static final String characterRecordURL = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/getContentFor?uid=";
   
   
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
+    Log.d(TAG, "lifecycle: onCreate");
+    
     setUpMainWebView();
     
     Thread.setDefaultUncaughtExceptionHandler(
@@ -122,43 +124,76 @@ public class AppRTCDemoActivity extends Activity
     Point displaySize = new Point();
     getWindowManager().getDefaultDisplay().getSize(displaySize);
     vsv = new VideoStreamsView(this, displaySize);
-//    setContentView(vsv);
    
     abortUnless(PeerConnectionFactory.initializeAndroidGlobals(this),
         "Failed to initializeAndroidGlobals");
-
-//    AudioManager audioManager =
-//        ((AudioManager) getSystemService(AUDIO_SERVICE));
-////     TODO(fischman): figure out how to do this Right(tm) and remove the
-////     suppression.
-//    @SuppressWarnings("deprecation")
-//    boolean isWiredHeadsetOn = audioManager.isWiredHeadsetOn();
-//    audioManager.setMode(isWiredHeadsetOn ?
-//        AudioManager.MODE_IN_CALL : AudioManager.MODE_IN_COMMUNICATION);
-//    audioManager.setSpeakerphoneOn(!isWiredHeadsetOn);
 
     sdpMediaConstraints = new MediaConstraints();
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveAudio", "true"));
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveVideo", "true"));
-
-//    final Intent intent = getIntent();
-//    if ("android.intent.action.VIEW".equals(intent.getAction())) {
-//      connectToRoom(intent.getData().toString());
-//      return;
-//    }
-// 	  showGetRoomUI();
+    active = true;
     
     (new ChatRoomIdGetter(this)).execute(getChraracterRecordUrl());
   }
+  
+  @Override
+  public void onPause() {
+	  active = false;
+	  super.onPause();
+	  Log.d(TAG, "lifecycle: onPause");
+//    vsv.onPause();
+//    if (videoSource != null) {
+//      videoSource.stop();
+//      videoSourceStopped = true;
+//    }
 
+    //disconnectAndExit();
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    Log.d(TAG, "lifecycle: onResume");
+    vsv.onResume();
+    if (videoSource != null && videoSourceStopped) {
+      videoSource.restart();
+    }
+  }
+
+  @Override
+  public void onRestart() {
+	  super.onRestart();
+	    Log.d(TAG, "lifecycle: onRestart");
+  }
+  
+  @Override
+  public void onStart() {
+	  super.onStart();
+	    Log.d(TAG, "lifecycle: onStart");
+  }
+  
   @Override
   protected void onStop() {
       super.onStop();  
       
+      Log.d(TAG, "lifecycle: onStop");
       Log.d(TAG, "disconnect from chat");
       disconnectAndExit();
+  }
+  
+  @Override
+  protected void onDestroy() {
+    disconnectAndExit();
+    try {
+    	super.onDestroy();
+    }
+    catch (RuntimeException e)
+    {
+    	Log.d(TAG, "it happens =(");
+    }
+    	Log.d(TAG, "lifecycle: onDestroy");
   }
   
   private String getGlassUid(){
@@ -174,8 +209,15 @@ public class AppRTCDemoActivity extends Activity
   }
   
   private void chatRoomIdReady(String chatRoomId){
-	  logAndToast("Connecting to room "+chatRoomId);
-	  connectToRoom(roomBaseURL+chatRoomId);
+	  if (active)
+	  {
+		  logAndToast("Connecting to room "+chatRoomId);
+	  	connectToRoom(roomBaseURL+chatRoomId);
+	  }
+	  else
+	  {
+		  Log.d(TAG, "fetched chatRoomId but app is not active anymore");
+	  }
   }
   
   private void setUpMainWebView() {
@@ -211,30 +253,9 @@ public class AppRTCDemoActivity extends Activity
   }
 
   private void connectToRoom(String roomUrl) {
-    logAndToast("Connecting to room...");
-    appRtcClient.connectToRoom(roomUrl);
+		  appRtcClient.connectToRoom(roomUrl);
   }
-
-  @Override
-  public void onPause() {
-    super.onPause();
-    vsv.onPause();
-    if (videoSource != null) {
-      videoSource.stop();
-      videoSourceStopped = true;
-    }
-  }
-
-  @Override
-  public void onResume() {
-    super.onResume();
-    vsv.onResume();
-    if (videoSource != null && videoSourceStopped) {
-      videoSource.restart();
-    }
-  }
-
-
+  
   // Just for fun (and to regression-test bug 2302) make sure that DataChannels
   // can be created, queried, and disposed.
   private static void createDataChannelToRegressionTestBug2302(
@@ -254,7 +275,7 @@ public class AppRTCDemoActivity extends Activity
         new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
     pc = factory.createPeerConnection(iceServers, pcConstraints, pcObserver);
 
-    createDataChannelToRegressionTestBug2302(pc);  // See method comment.
+    //createDataChannelToRegressionTestBug2302(pc);  // See method comment.
 
     // Uncomment to get ALL WebRTC tracing and SENSITIVE libjingle logging.
     // NOTE: this _must_ happen while |factory| is alive!
@@ -335,12 +356,6 @@ public class AppRTCDemoActivity extends Activity
     Log.d(TAG, "failed to open capturer");
     logAndToast("Can't open camera. Overheat?");
     throw new RuntimeException("Failed to open capturer");
-  }
-
-  @Override
-  protected void onDestroy() {
-    disconnectAndExit();
-    super.onDestroy();
   }
 
   // Poor-man's assert(): die with |msg| unless |condition| is true.
@@ -728,25 +743,5 @@ public class AppRTCDemoActivity extends Activity
 	  	  
 	  	  return chatRoomId;
 	    }
-	    
-	    // borrowed from AppRtcClient... =)
-	    private String getVarValue(
-		        String roomHtml, String varName, boolean stripQuotes)
-		        throws IOException {
-		      final Pattern pattern = Pattern.compile(
-		          ".*\n *var " + varName + " = ([^\n]*);\n.*");
-		      Matcher matcher = pattern.matcher(roomHtml);
-		      if (!matcher.find()) {
-		        throw new IOException("Missing " + varName + " in HTML: " + roomHtml);
-		      }
-		      String varValue = matcher.group(1);
-		      if (matcher.find()) {
-		        throw new IOException("Too many " + varName + " in HTML: " + roomHtml);
-		      }
-		      if (stripQuotes) {
-		        varValue = varValue.substring(1, varValue.length() - 1);
-		      }
-		      return varValue;
-		    }
   }
 }

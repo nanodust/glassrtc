@@ -216,7 +216,7 @@ public class AppRTCClient {
       try {
         return getParametersForRoomUrl(urls[0]);
       } catch (IOException e) {
-        throw new RuntimeException(e);
+    	  throw new RuntimeException(e);
       }
     }
 
