@@ -216,6 +216,7 @@ public class AppRTCClient {
       try {
         return getParametersForRoomUrl(urls[0]);
       } catch (IOException e) {
+    	  Log.d(TAG, "lifecycle: got exception while getting parameters from room");
     	  throw new RuntimeException(e);
       }
     }

@@ -110,21 +110,22 @@ private boolean active;
   
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    Thread.setDefaultUncaughtExceptionHandler(
+            new RtcExceptionHandler(this)); 
+    
     super.onCreate(savedInstanceState);
+    
     Log.d(TAG, "lifecycle: onCreate");
     
     setUpMainWebView();
-    
-    Thread.setDefaultUncaughtExceptionHandler(
-        new UnhandledExceptionHandler(this));
-
+  
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+   
     Point displaySize = new Point();
     getWindowManager().getDefaultDisplay().getSize(displaySize);
     vsv = new VideoStreamsView(this, displaySize);
-   
+    
     abortUnless(PeerConnectionFactory.initializeAndroidGlobals(this),
         "Failed to initializeAndroidGlobals");
 
@@ -133,8 +134,8 @@ private boolean active;
         "OfferToReceiveAudio", "true"));
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveVideo", "true"));
-    active = true;
     
+    active = true;
     (new ChatRoomIdGetter(this)).execute(getChraracterRecordUrl());
   }
   
@@ -212,7 +213,7 @@ private boolean active;
 	  if (active)
 	  {
 		  logAndToast("Connecting to room "+chatRoomId);
-	  	connectToRoom(roomBaseURL+chatRoomId);
+		  connectToRoom(roomBaseURL+chatRoomId);
 	  }
 	  else
 	  {
@@ -310,18 +311,22 @@ private boolean active;
       vsv.postDelayed(repeatedStatsLogger, 10000);
     }
 
+    try
     {
       logAndToast("Creating local video source...");
       MediaStream lMS = factory.createLocalMediaStream("ARDAMS");
       if (appRtcClient.videoConstraints() != null) {
         VideoCapturer capturer = getVideoCapturer();
-        videoSource = factory.createVideoSource(
-            capturer, appRtcClient.videoConstraints());
-        VideoTrack videoTrack =
-            factory.createVideoTrack("ARDAMSv0", videoSource);
-        videoTrack.addRenderer(new VideoRenderer(new VideoCallbacks(
-            vsv, VideoStreamsView.Endpoint.LOCAL)));
-        lMS.addTrack(videoTrack);
+        if (capturer != null)
+        {
+        	videoSource = factory.createVideoSource(
+        			capturer, appRtcClient.videoConstraints());
+        	VideoTrack videoTrack =
+        			factory.createVideoTrack("ARDAMSv0", videoSource);
+        	videoTrack.addRenderer(new VideoRenderer(new VideoCallbacks(
+        			vsv, VideoStreamsView.Endpoint.LOCAL)));
+        	lMS.addTrack(videoTrack);
+        }
       }
       
       if (appRtcClient.audioConstraints() != null) {
@@ -330,8 +335,12 @@ private boolean active;
             factory.createAudioSource(appRtcClient.audioConstraints())));
       }
       pc.addStream(lMS, new MediaConstraints());
+      logAndToast("Waiting for ICE candidates...");
     }
-    logAndToast("Waiting for ICE candidates...");
+    catch (RuntimeException e)
+    {
+    	Log.d(TAG, "got exception while add media capturer in 'onIceServers' "+e.getLocalizedMessage());
+    }
   }
 
   // Cycle through likely device names for the camera and return the first
@@ -355,12 +364,14 @@ private boolean active;
     }
     Log.d(TAG, "failed to open capturer");
     logAndToast("Can't open camera. Overheat?");
-    throw new RuntimeException("Failed to open capturer");
+    //throw new RuntimeException("Failed to open capturer");
+    return null;
   }
 
   // Poor-man's assert(): die with |msg| unless |condition| is true.
   private static void abortUnless(boolean condition, String msg) {
     if (!condition) {
+    	Log.d(TAG, "lifecycle: abortUnless: FATAL error: "+msg);
       throw new RuntimeException(msg);
     }
   }
@@ -744,4 +755,27 @@ private boolean active;
 	  	  return chatRoomId;
 	    }
   }
+  
+  private class RtcExceptionHandler extends UnhandledExceptionHandler
+  {
+	  private static final String TAG = "AppRTCDemoActivity";
+	  
+	  public RtcExceptionHandler(final Activity activity) {
+		  super(activity);
+	  }
+	  
+	  @Override
+	  public void uncaughtException(Thread unusedThread, final Throwable e) {
+		  Log.d(TAG, "lifecycle: Fatal error: " + getTopLevelCauseMessage(e));
+	  }
+	  
+	  private String getTopLevelCauseMessage(Throwable t) {
+		    Throwable topLevelCause = t;
+		    while (topLevelCause.getCause() != null) {
+		      topLevelCause = topLevelCause.getCause();
+		    }
+		    return topLevelCause.getMessage();
+		  }
+  }
+  
 }
