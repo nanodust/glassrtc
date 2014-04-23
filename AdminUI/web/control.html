@@ -1,0 +1,48 @@
+<html>
+<link rel="stylesheet" type="text/css" href="display.css" />
+
+ <script src="js/jquery-1.7.2.js"></script>
+ <script src="js/control.js"></script>
+
+<div id="glasslist">
+<form action="control.py/sendContent">
+<select name="glasses" id="glasses" class="glasses" multiple>
+</select>
+</form>
+</div>
+
+<div id="control" class="control">
+<a href="javascript:clearUIDs()">clear</a>
+<a href="javascript:loadUIDs()">refresh</a>
+<a href="javascript:insertContent()">send</a>
+<form enctype="multipart/form-data" action="control.py/upload" method="post">
+	  <p>Image: <input type="file" name="file"></p>
+	  <p><input type="submit" value="Upload"></p>
+</form>
+</div>
+
+
+<div id="chat">
+<textarea rows="8" cols="30" id="chatbox" class="chat">
+<video width="640" height="360" controls autoplay>
+<source src="http://ether.remap.ucla.edu/glass/files/car.mp4" type="video/mp4">
+</video>
+
+
+
+ 
+</textarea>
+
+<!-- 
+
+hello glass!<br/>
+<img src="http://goo.gl/dkQEDq">
+ -->
+
+</div>
+
+<div id="glassview" class = "glassview">
+
+</div>
+
+</html>
