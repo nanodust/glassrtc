@@ -380,7 +380,7 @@ function storeCharacterMap(data, tabletop)
 			nameList[idx].chatroomid = data[i].chatroomid;
 		}
 	}
-	sortNameList();
+	//sortNameList();
 	//console.log(nameList);
 	loadPhrasePlayerList();
 }
@@ -415,7 +415,7 @@ function generatePlayerList(data, tabletop)
 				characterNum ++;
 			}
 		}
-		sortNameList();
+		//sortNameList();
 	}
 	
 	var checked = "";
