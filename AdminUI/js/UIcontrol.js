@@ -148,7 +148,7 @@ function send(uid, what)
     	
     	if (USEGLASSCHAT)
     	{
-    		url = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/insertContentFor?uid=" + nameList[uid].uid + "&content=" + content + "&chatroomID=" + nameList[uid].chatroomid;
+			url = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/insertContentFor?uid=" + nameList[uid].uid + "&content=" + content + "&chatroomID=" + nameList[uid].chatroomid + "&queryString=" + escape(nameList[uid].querystring);
     		//url = "http://ether.remap.ucla.edu/glass/data.py/insertContentFor?uid="+nameList[uid].uid+"&content="+content;
 			xobj = new XMLHttpRequest();
     		xobj.overrideMimeType("application/json");
@@ -371,13 +371,14 @@ function storeCharacterMap(data, tabletop)
 		idx = indexOfNameList(data[i].charactername);
 		if (idx == -1 && data[i].charactername != "Anyone")
 		{
-			nameList.push({uid: data[i].uid, charactername: data[i].charactername, chatroomid: data[i].chatroomid});
+			nameList.push({uid: data[i].uid, charactername: data[i].charactername, chatroomid: data[i].chatroomid, querystring: data[i].querystring});
 			characterNum ++;
 		}
 		else if (idx != -1)
 		{
 			nameList[idx].uid = data[i].uid;
 			nameList[idx].chatroomid = data[i].chatroomid;
+			nameList[idx].querystring = data[i].querystring;
 		}
 	}
 	//sortNameList();
