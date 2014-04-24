@@ -5,6 +5,7 @@
 //cheap hack for loading: expecting character not added or dismissed.
 //only load the phrases the first time character's loaded.
 
+//key scrolling is broken for filtering phrases
 
 //USEGLASSCHAT macro defines whether we use glass chat code and glass uids
 var USEGLASSCHAT = true;
@@ -24,7 +25,7 @@ var characterNum = 0;
 var characterMap = new Array();
 
 var activeList = new Array();
-var scriptNum = 0;
+var phraseNum = 0;
 
 var currentIdx = 0;
 
@@ -53,6 +54,7 @@ function sendClick()
 		
 			//it takes time to do the following. Tested with fast clicking of 'send', seems to work well.
 			//one token should be good for several 'send's
+			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
 			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line="+pushMsg;
 			$.get(url);
 		}
@@ -122,6 +124,8 @@ function checkLock(obj)
 	document.getElementById(sendCheck).checked = false;
 	document.getElementById(sendCheck).disabled = !(obj.checked);
 	checkSend(document.getElementById(sendCheck));
+	
+	loadPhrase();
 }
 
 //Send pushes to specific URL(character name and glass uid), called by sendclick
@@ -195,12 +199,17 @@ function sortNameList()
 function selectPhrase(idx)
 {
 	var txtarea = document.getElementById('txtarea' + idx);
+	console.log('txtarea' + idx);
 	if (txtarea != null)
 	{
 		//remember to change this line if the ' => ' that comes before user name is changed.
 		var strSplit = txtarea.value.substring(4).split(" : ");
-		var name = strSplit[0];
+		
+		var name = strSplit[0].split(" ")[1];
+		
 		var line = strSplit[1];
+		
+		console.log(name);
 		
 		var lineEscapeWhenToPush = (strSplit[1].split("\n"))[0];
 		
@@ -257,7 +266,7 @@ function scriptKeydown(event, num)
 	{
 		if (num - 1 < 0)
 		{
-			num = scriptNum;
+			num = phraseNum;
 		}
 		txtarea = document.getElementById('txtarea' + (num - 1));
 		if (txtarea!=null)
@@ -270,7 +279,7 @@ function scriptKeydown(event, num)
 	}
 	else if (event.keyCode == KEYDOWN)
 	{
-		if (num + 1 >= scriptNum)
+		if (num + 1 >= phraseNum)
 		{
 			num = -1;
 		}
@@ -300,21 +309,31 @@ function scriptKeydown(event, num)
 function showPhrase(data, tabletop) {
 	var div = document.getElementById('scriptBoxDiv');
     var html = '';
-    scriptNum = data.length;
+    phraseNum = 0;
     var height = 40;
+    
+    var lockCheck = null;
+    
     for(var i = 0; i < data.length; i++) {
-    	height = 40 + data[i].pushedline.length / 8;
-    	if (whenToPushEnabled)
+    	//console.log('lock' + indexOfNameList(data[i].character));
+    	lockCheck = document.getElementById('lock' + indexOfNameList(data[i].character));
+    	
+    	if (lockCheck == null || lockCheck.checked)
     	{
-    		html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + i + "\" readonly \
-    		onkeydown=\"scriptKeydown(event, " + i + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + i + ")\"> => " 
-    		+ data[i].character + " : " + data[i].pushedline + "\n[" + data[i].whentopush + "]</textarea>";
-    	}
-    	else
-    	{
-    		html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + i + "\" readonly \
-    		onkeydown=\"scriptKeydown(event, " + i + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + i + ")\"> => " 
-    		+ data[i].character + " : " + data[i].pushedline + "</textarea>";
+    		height = 40 + data[i].pushedline.length / 8;
+    		if (whenToPushEnabled)
+    		{
+    			html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + phraseNum + "\" readonly \
+    			onkeydown=\"scriptKeydown(event, " + phraseNum + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + phraseNum + ")\"> " + i + " => " 
+    			+ data[i].character + " : " + data[i].pushedline + "\n[" + data[i].whentopush + "]</textarea>";
+    		}
+    		else
+    		{
+    			html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + phraseNum + "\" readonly \
+    			onkeydown=\"scriptKeydown(event, " + phraseNum + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + phraseNum + ")\"> " + i + " => " 
+    			+ data[i].character + " : " + data[i].pushedline + "</textarea>";
+    		}
+    		phraseNum ++;
     	}
 	}
     div.innerHTML = html;
@@ -400,10 +419,10 @@ function generatePlayerList(data, tabletop)
 	}
 	
 	var checked = "";
+	var enabled = "";
 	
 	for (var i = 0; i < characterNum; i++)
 	{
-		html = html + "<input type=\"checkbox\" id=lock" + i + " onchange=\"checkLock(this)\" checked>" + nameList[i].charactername + "</input><br>";
 		if (document.getElementById('send' + i) != null)
 		{
 			if (document.getElementById('send' + i).checked == true)
@@ -419,7 +438,48 @@ function generatePlayerList(data, tabletop)
 		{
 			checked = "";
 		}
-		sendHtml = sendHtml + "<input type=\"checkbox\" id=send" + i + " onchange=\"checkSend(this)\" " + checked + "></input><span id=\"character" + i + "\">" + (i + 1) + " : " + nameList[i].charactername + "</span><br>";
+		
+		if (document.getElementById('send' + i) != null)
+		{
+			if (document.getElementById('send' + i).disabled == true)
+			{
+				enabled = "disabled";
+			}
+			else
+			{
+				enabled = "";
+			}
+		}
+		else
+		{
+			enabled = "";
+		}
+		
+		sendHtml = sendHtml + "<input type=\"checkbox\" id=send" + i + " onchange=\"checkSend(this)\" " + checked + " " + enabled + "></input><span id=\"character" + i + "\">" + (i + 1) + " : " + nameList[i].charactername + "</span><br>";
+		
+		if (!mapLoaded)
+		{
+			checked = "checked";
+		}
+		else
+		{
+			if (document.getElementById('lock' + i) != null)
+			{
+				if (document.getElementById('lock' + i).checked == true)
+				{
+					checked = "checked";
+				}
+				else
+				{
+					checked = "";
+				}
+			}
+			else
+			{
+				checked = "";
+			}
+		}
+		html = html + "<input type=\"checkbox\" id=lock" + i + " onchange=\"checkLock(this)\" " + checked + ">" + nameList[i].charactername + "</input><br>";
 	}
 	
 	var div = document.getElementById('lockDiv');
@@ -465,7 +525,7 @@ function onLoad()
 	if (USEGLASSCHAT)
 	{
 		//loadCharacterMap();
-		setInterval ( "loadCharacterMap()", 1000 );
+		setInterval ( "loadCharacterMap()", 5000 );
 	}
 	else
 	{
