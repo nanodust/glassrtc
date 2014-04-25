@@ -37,7 +37,7 @@ function initialize() {
   // Reset localVideo display to center.
   localVideo.addEventListener('loadedmetadata', function(){
     window.onresize();});
-  miniVideo = document.getElementById('miniVideo');
+  //miniVideo = document.getElementById('miniVideo');
   remoteVideo = document.getElementById('remoteVideo');
   resetStatus();
   // NOTE: AppRTCClient.java searches & parses this line; update there when
@@ -441,11 +441,11 @@ function waitForRemoteVideo() {
 }
 
 function transitionToActive() {
-  reattachMediaStream(miniVideo, localVideo);
+  //reattachMediaStream(miniVideo, localVideo);
   remoteVideo.style.opacity = 1;
   card.style.webkitTransform = 'rotateY(180deg)';
   setTimeout(function() { localVideo.src = ''; }, 500);
-  setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
+  //setTimeout(function() { miniVideo.style.opacity = 1; }, 1000);
   // Reset window display according to the asperio of remote video.
   window.onresize();
   setStatus('On air');
