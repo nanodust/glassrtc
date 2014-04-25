@@ -268,22 +268,23 @@ public class AppRTCClient {
         }
       }
       if (!isTurnPresent) {
-        iceServers.add(
-            requestTurnServer(getVarValue(roomHtml, "turnUrl", true)));
+    	  String turnUrl = getVarValue(roomHtml, "turnUrl", true);
+    	  if (turnUrl != null && !turnUrl.equals(""))
+    		  iceServers.add(requestTurnServer(turnUrl));
       }
 
       MediaConstraints pcConstraints = constraintsFromJSON(
           getVarValue(roomHtml, "pcConstraints", false));
       addDTLSConstraintIfMissing(pcConstraints);
-      Log.d(TAG, "pcConstraints: " + pcConstraints);
+      Log.d(TAG, "lifecycle: pcConstraints: " + pcConstraints);
       MediaConstraints videoConstraints = constraintsFromJSON(
           getAVConstraints("video",
               getVarValue(roomHtml, "mediaConstraints", false)));
-      Log.d(TAG, "videoConstraints: " + videoConstraints);
+      Log.d(TAG, "lifecycle: videoConstraints: " + videoConstraints);
       MediaConstraints audioConstraints = constraintsFromJSON(
           getAVConstraints("audio",
               getVarValue(roomHtml, "mediaConstraints", false)));
-      Log.d(TAG, "audioConstraints: " + audioConstraints);
+      Log.d(TAG, "lifecycle: audioConstraints: " + audioConstraints);
 
       return new AppRTCSignalingParameters(
           iceServers, gaeBaseHref, token, postMessageUrl, initiator,
