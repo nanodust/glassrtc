@@ -1,5 +1,12 @@
 //GPAdmin UI code by Zhehao on Apr 15th, 2014
 
+//GPAdmin UI log quick fixes:
+//quick fixes for automatically loading ampping sheet
+//cheap hack for loading: expecting character not added or dismissed.
+//only load the phrases the first time character's loaded.
+
+//key scrolling is broken for filtering phrases
+
 //USEGLASSCHAT macro defines whether we use glass chat code and glass uids
 var USEGLASSCHAT = true;
 
@@ -18,9 +25,12 @@ var characterNum = 0;
 var characterMap = new Array();
 
 var activeList = new Array();
-var scriptNum = 0;
+var phraseNum = 0;
 
 var currentIdx = 0;
+
+var mapLoaded = false;
+var whenToPushEnabled = true;
 
 //Send button click or similar action: calls send(uid, what, chatroomID) and logging using PHP code
 function sendClick()
@@ -44,6 +54,7 @@ function sendClick()
 		
 			//it takes time to do the following. Tested with fast clicking of 'send', seems to work well.
 			//one token should be good for several 'send's
+			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
 			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line="+pushMsg;
 			$.get(url);
 		}
@@ -113,6 +124,8 @@ function checkLock(obj)
 	document.getElementById(sendCheck).checked = false;
 	document.getElementById(sendCheck).disabled = !(obj.checked);
 	checkSend(document.getElementById(sendCheck));
+	
+	loadPhrase();
 }
 
 //Send pushes to specific URL(character name and glass uid), called by sendclick
@@ -135,7 +148,7 @@ function send(uid, what)
     	
     	if (USEGLASSCHAT)
     	{
-    		url = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/insertContentFor?uid=" + nameList[uid].uid + "&content=" + content + "&chatroomID=" + nameList[uid].chatroomid;
+			url = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/insertContentFor?uid=" + nameList[uid].uid + "&content=" + content + "&chatroomID=" + nameList[uid].chatroomid + "&queryString=" + escape(nameList[uid].querystring);
     		//url = "http://ether.remap.ucla.edu/glass/data.py/insertContentFor?uid="+nameList[uid].uid+"&content="+content;
 			xobj = new XMLHttpRequest();
     		xobj.overrideMimeType("application/json");
@@ -186,17 +199,25 @@ function sortNameList()
 function selectPhrase(idx)
 {
 	var txtarea = document.getElementById('txtarea' + idx);
+	console.log('txtarea' + idx);
 	if (txtarea != null)
 	{
 		//remember to change this line if the ' => ' that comes before user name is changed.
 		var strSplit = txtarea.value.substring(4).split(" : ");
-		var name = strSplit[0];
+		
+		var name = strSplit[0].split(" ")[1];
+		
 		var line = strSplit[1];
+		
+		console.log(name);
+		
+		var lineEscapeWhenToPush = (strSplit[1].split("\n"))[0];
+		
 		var num = indexOfNameList(name);
 		
 		if (num != -1)
 		{
-			document.getElementById('inputBox').value = line;
+			document.getElementById('inputBox').value = lineEscapeWhenToPush;
 			for (var i = 0; i < characterNum; i++)
 			{
 				if (i!=num)
@@ -211,6 +232,11 @@ function selectPhrase(idx)
 				checkSend(document.getElementById('send' + num));
 			}
 		}
+		else
+		{
+			document.getElementById('inputBox').value = lineEscapeWhenToPush;
+		}
+		currentIdx = idx;
 		inputPreview();
 	}
 }
@@ -227,6 +253,12 @@ function moveCursorToEnd(el) {
     }
 }
 
+function toggleWhenToPush()
+{
+	whenToPushEnabled = !whenToPushEnabled;
+	loadPhrase();
+}
+
 //Phrase section onkeydown
 function scriptKeydown(event, num)
 {
@@ -234,7 +266,7 @@ function scriptKeydown(event, num)
 	{
 		if (num - 1 < 0)
 		{
-			num = scriptNum;
+			num = phraseNum;
 		}
 		txtarea = document.getElementById('txtarea' + (num - 1));
 		if (txtarea!=null)
@@ -247,7 +279,7 @@ function scriptKeydown(event, num)
 	}
 	else if (event.keyCode == KEYDOWN)
 	{
-		if (num + 1 >= scriptNum)
+		if (num + 1 >= phraseNum)
 		{
 			num = -1;
 		}
@@ -277,18 +309,44 @@ function scriptKeydown(event, num)
 function showPhrase(data, tabletop) {
 	var div = document.getElementById('scriptBoxDiv');
     var html = '';
-    scriptNum = data.length;
+    phraseNum = 0;
+    var height = 40;
+    
+    var lockCheck = null;
+    
     for(var i = 0; i < data.length; i++) {
-    	html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + i + "\" readonly \
-    	onkeydown=\"scriptKeydown(event, " + i + ")\" ondblclick=\"selectPhrase(" + i + ")\"> => " 
-    	+ data[i].character + " : " + data[i].pushedline + "</textarea>";
+    	//console.log('lock' + indexOfNameList(data[i].character));
+    	lockCheck = document.getElementById('lock' + indexOfNameList(data[i].character));
+    	
+    	if (lockCheck == null || lockCheck.checked)
+    	{
+    		height = 40 + data[i].pushedline.length / 8;
+    		if (whenToPushEnabled)
+    		{
+    			html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + phraseNum + "\" readonly \
+    			onkeydown=\"scriptKeydown(event, " + phraseNum + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + phraseNum + ")\"> " + i + " => " 
+    			+ data[i].character + " : " + data[i].pushedline + "\n[" + data[i].whentopush + "]</textarea>";
+    		}
+    		else
+    		{
+    			html = html + "<textarea class=\"scriptTextarea boxClass\" id=\"txtarea" + phraseNum + "\" readonly \
+    			onkeydown=\"scriptKeydown(event, " + phraseNum + ")\" style=\"height:" + height + "px\" ondblclick=\"selectPhrase(" + phraseNum + ")\"> " + i + " => " 
+    			+ data[i].character + " : " + data[i].pushedline + "</textarea>";
+    		}
+    		phraseNum ++;
+    	}
 	}
     div.innerHTML = html;
-    if (data.length != 0)
-    {
-    	document.getElementById('txtarea0').focus();
-    	selectPhrase(0, data[0].character, data[0].pushedline);
-    }
+    
+    //focus on previously selected phrase if there is one.
+	var txtarea = document.getElementById('txtarea' + currentIdx);
+	if (txtarea != null)
+	{
+		//console.log(currentIdx);
+		txtarea.focus();
+		selectPhrase(currentIdx);
+	}
+	
     //console.log(html);
 }
 
@@ -304,16 +362,27 @@ function loadPhrasePlayerList()
 
 function storeCharacterMap(data, tabletop)
 {
+	//characterNum = 0;
+	//nameList = new Array();
+	var idx = -1;
 	for (var i = 0; i < data.length; i++)
 	{
 		//jquery.inarray works when using nameList.charactername as input
-		if (indexOfNameList(data[i].character) == -1 && data[i].character != "Anyone")
+		idx = indexOfNameList(data[i].charactername);
+		if (idx == -1 && data[i].charactername != "Anyone")
 		{
-			nameList.push({uid: data[i].uid, charactername: data[i].charactername, chatroomid: data[i].chatroomid});
+			nameList.push({uid: data[i].uid, charactername: data[i].charactername, chatroomid: data[i].chatroomid, querystring: data[i].querystring});
 			characterNum ++;
 		}
+		else if (idx != -1)
+		{
+			nameList[idx].uid = data[i].uid;
+			nameList[idx].chatroomid = data[i].chatroomid;
+			nameList[idx].querystring = data[i].querystring;
+		}
 	}
-	sortNameList();
+	//sortNameList();
+	//console.log(nameList);
 	loadPhrasePlayerList();
 }
 
@@ -341,26 +410,97 @@ function generatePlayerList(data, tabletop)
 	{
 		for (var i = 0; i < data.length; i++)
 		{
-			if (lookupIndex(data[i].character) == -1 && data[i].character != "Anyone")
+			if (indexOfNameList(data[i].charactername) == -1 && data[i].charactername != "Anyone")
 			{
 				nameList.push({charactername: data[i].character, uid: 0});
 				characterNum ++;
 			}
 		}
-		sortNameList();
+		//sortNameList();
 	}
+	
+	var checked = "";
+	var enabled = "";
 	
 	for (var i = 0; i < characterNum; i++)
 	{
-		html = html + "<input type=\"checkbox\" id=lock" + i + " onchange=\"checkLock(this)\" checked>" + nameList[i].charactername + "</input><br>";
-		sendHtml = sendHtml + "<input type=\"checkbox\" id=send" + i + " onchange=\"checkSend(this)\"></input><span id=\"character" + i + "\">" + nameList[i].charactername + "</span><br>";
+		if (document.getElementById('send' + i) != null)
+		{
+			if (document.getElementById('send' + i).checked == true)
+			{
+				checked = "checked";
+			}
+			else
+			{
+				checked = "";
+			}
+		}
+		else
+		{
+			checked = "";
+		}
+		
+		if (document.getElementById('send' + i) != null)
+		{
+			if (document.getElementById('send' + i).disabled == true)
+			{
+				enabled = "disabled";
+			}
+			else
+			{
+				enabled = "";
+			}
+		}
+		else
+		{
+			enabled = "";
+		}
+		
+		sendHtml = sendHtml + "<input type=\"checkbox\" id=send" + i + " onchange=\"checkSend(this)\" " + checked + " " + enabled + "></input><span id=\"character" + i + "\">" + (i + 1) + " : " + nameList[i].charactername + "</span><br>";
+		
+		if (!mapLoaded)
+		{
+			checked = "checked";
+		}
+		else
+		{
+			if (document.getElementById('lock' + i) != null)
+			{
+				if (document.getElementById('lock' + i).checked == true)
+				{
+					checked = "checked";
+				}
+				else
+				{
+					checked = "";
+				}
+			}
+			else
+			{
+				checked = "";
+			}
+		}
+		html = html + "<input type=\"checkbox\" id=lock" + i + " onchange=\"checkLock(this)\" " + checked + ">" + nameList[i].charactername + "</input><br>";
 	}
+	
 	var div = document.getElementById('lockDiv');
 	div.innerHTML = html;
 	div = document.getElementById('recipientDiv');
 	div.innerHTML = sendHtml;
 	
-	loadPhrase();
+	for (var i = 0; i < characterNum; i++)
+	{
+		if (document.getElementById('send' + i) != null)
+		{
+			checkSend(document.getElementById('send' + i));
+		}
+	}
+	
+	if (!mapLoaded)
+	{
+		loadPhrase();
+	}
+	mapLoaded = true;
 }
 
 function documentKeydown(event)
@@ -385,12 +525,14 @@ function onLoad()
 {
 	if (USEGLASSCHAT)
 	{
-		loadCharacterMap();
+		//loadCharacterMap();
+		setInterval ( "loadCharacterMap()", 5000 );
 	}
 	else
 	{
 		loadPhrasePlayerList();
 	}
+	
 }
 
 function loadHistory()

@@ -418,11 +418,11 @@ class MainPage(webapp2.RequestHandler):
       # Set dtls to false as DTLS does not work for loopback.
       dtls = 'false'
 
-    # token_timeout for channel creation, default 30min, max 1 days, min 3min.
+    # token_timeout for channel creation, default 1400min, max 1 days, min 3min.
     token_timeout = self.request.get_range('tt',
                                            min_value = 3,
                                            max_value = 1440,
-                                           default = 30)
+                                           default = 1400)
 
     unittest = self.request.get('unittest')
     if unittest:

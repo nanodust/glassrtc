@@ -17,9 +17,10 @@ connection = Connection('localhost', cfg.dbPort)
 db = connection[cfg.colName]
 collection = db[cfg.colName]
 
-def insertMediaFor(uid, media, chatroomID):
+def insertMediaFor(uid, media, chatroomID, queryString):
 	collection.update({"uid":uid},{'$set':{"content":media}}, upsert=True, multi=True)
 	collection.update({"uid":uid},{'$set':{"chatroomID":chatroomID}}, upsert=True, multi=True)
+	collection.update({"uid":uid},{'$set':{"queryString":queryString}}, upsert=True, multi=True)
 	
 def getMediaFor(uid):
 	result = collection.find_one({"uid":uid})
