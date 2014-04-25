@@ -8,6 +8,11 @@
 //key scrolling is broken for filtering phrases
 
 //USEGLASSCHAT macro defines whether we use glass chat code and glass uids
+
+//focusing is weird when somebody's enabled or disabled
+
+//should re-organize the script, regularize the naming schemes and simplify the process.
+
 var USEGLASSCHAT = true;
 
 //key constants
@@ -18,6 +23,10 @@ var KEYSPACE = 32;
 
 var KEYZERO = 48;
 var KEYNINE = 57;
+
+var KEYR = 82;
+var KEYD = 68;
+var KEYC = 67;
 
 //global vars for num of players and player name array
 var nameList = new Array();
@@ -199,17 +208,14 @@ function sortNameList()
 function selectPhrase(idx)
 {
 	var txtarea = document.getElementById('txtarea' + idx);
-	console.log('txtarea' + idx);
 	if (txtarea != null)
 	{
 		//remember to change this line if the ' => ' that comes before user name is changed.
 		var strSplit = txtarea.value.substring(4).split(" : ");
-		
+		//adaptation to the number before ' => '
 		var name = strSplit[0].split(" ")[1];
 		
 		var line = strSplit[1];
-		
-		console.log(name);
 		
 		var lineEscapeWhenToPush = (strSplit[1].split("\n"))[0];
 		
@@ -305,6 +311,82 @@ function scriptKeydown(event, num)
 	}
 }
 
+//should merge these two functions
+function sendRedCard()
+{
+	for (var i = 0; i<characterNum; i++)
+	{
+		if (document.getElementById('send' + i).checked == true)
+		{
+			var pushMsg = "<img src=\"red.jpg\"></img>";
+			send(i, pushMsg);
+			//format for history and writing to spreadsheet
+			
+			var currentTime = new Date();
+			var timeStamp = currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds() + "." + Math.round(currentTime.getMilliseconds() / 100);
+			
+			var sender = document.getElementById('adminName').value;
+			var receiver = nameList[i].charactername;
+			
+			document.getElementById('historyBox').value = timeStamp + ": " + sender + " => " + receiver + " : \'" + pushMsg + "\'\n" + document.getElementById('historyBox').value;
+			
+			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
+			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line="+pushMsg;
+			$.get(url);
+		}
+	}
+}
+
+function sendClear()
+{
+	for (var i = 0; i<characterNum; i++)
+	{
+		if (document.getElementById('send' + i).checked == true)
+		{
+			var pushMsg = "";
+			send(i, pushMsg);
+			//format for history and writing to spreadsheet
+			
+			var currentTime = new Date();
+			var timeStamp = currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds() + "." + Math.round(currentTime.getMilliseconds() / 100);
+			
+			var sender = document.getElementById('adminName').value;
+			var receiver = nameList[i].charactername;
+			
+			document.getElementById('historyBox').value = timeStamp + ": " + sender + " => " + receiver + " :  cmd>cleared\n" + document.getElementById('historyBox').value;
+			
+			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
+			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line=cmd>cleared";
+			$.get(url);
+		}
+	}	
+}
+
+function debugPlayer()
+{
+	for (var i = 0; i<characterNum; i++)
+	{
+		if (document.getElementById('send' + i).checked == true)
+		{
+			var pushMsg = nameList[i].charactername;
+			send(i, pushMsg);
+			//format for history and writing to spreadsheet
+			
+			var currentTime = new Date();
+			var timeStamp = currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds() + "." + Math.round(currentTime.getMilliseconds() / 100);
+			
+			var sender = document.getElementById('adminName').value;
+			var receiver = nameList[i].charactername;
+			
+			document.getElementById('historyBox').value = timeStamp + ": " + sender + " => " + receiver + " : \'" + pushMsg + "\'\n" + document.getElementById('historyBox').value;
+			
+			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
+			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line=" + pushMsg;
+			$.get(url);
+		}
+	}	
+}
+
 //Generate phrase section using callback from tabletop code
 function showPhrase(data, tabletop) {
 	var div = document.getElementById('scriptBoxDiv');
@@ -376,9 +458,34 @@ function storeCharacterMap(data, tabletop)
 		}
 		else if (idx != -1)
 		{
-			nameList[idx].uid = data[i].uid;
-			nameList[idx].chatroomid = data[i].chatroomid;
-			nameList[idx].querystring = data[i].querystring;
+			if (nameList[idx].uid != data[i].uid || nameList[idx].chatroomid != data[i].chatroomid || nameList[idx].querystring != data[i].querystring)
+			{
+				nameList[idx].uid = data[i].uid;
+				nameList[idx].chatroomid = data[i].chatroomid;
+				nameList[idx].querystring = data[i].querystring;
+			
+			//no this is cheap, and it's not the way I want it...add backend python script for this function
+				send(idx, ""); 
+			
+			//definitely not the best way to do it, but it should work...somehow it does not...
+    		/*
+    		var xobj = new XMLHttpRequest();
+    		xobj.overrideMimeType("application/json");
+    		xobj.open('GET', 'http://ether.remap.ucla.edu/glass/data.py/getContentFor?uid='+nameList[idx].uid, true);
+    		//console.log('loading data');
+    		xobj.onreadystatechange = function () 
+    		{
+    			console.log(xobj.responseText);
+        		if (xobj.readyState == 4) 
+        		{
+            		var status = eval('(' + xobj.responseText + ')');
+            		console.log(nameList[idx].chatroomid);
+            		send(idx, status.content);
+        		}
+    		}
+    		xobj.send(null);
+    		*/
+    		}
 		}
 	}
 	//sortNameList();
@@ -518,6 +625,18 @@ function documentKeydown(event)
 			}
 		}
 	}
+	if (event.keyCode == KEYR && event.ctrlKey)
+	{
+		sendRedCard();
+	}
+	if (event.keyCode == KEYD && event.ctrlKey)
+	{
+		debugPlayer();
+	}
+	if (event.keyCode == KEYC && event.ctrlKey)
+	{
+		sendClear();
+	}
 }
 
 //Page onload event, load character names from published google spreadsheet
@@ -525,7 +644,7 @@ function onLoad()
 {
 	if (USEGLASSCHAT)
 	{
-		//loadCharacterMap();
+		loadCharacterMap();
 		setInterval ( "loadCharacterMap()", 5000 );
 	}
 	else

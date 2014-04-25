@@ -106,6 +106,20 @@ body
 	position:relative;
 }
 
+#leftButtonsDiv
+{
+	width:auto; 
+	float:left;
+	position:relative;
+}
+
+#rightButtonsDiv
+{
+	width:auto; 
+	float:right;
+	position:relative
+}
+
 #historyDiv
 {
 	width:99%; 
