@@ -1,4 +1,4 @@
-package com.remap.glass;
+package com.remap.glassBGV;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -6,9 +6,9 @@ import java.util.Date;
 
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
+import com.remap.glassBGV.R;
 
 import android.provider.Settings.Secure;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;

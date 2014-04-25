@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.remap.glass">
+          package="com.remap.glassBGV">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
 
     <application android:icon="@drawable/icon" android:label="GlassChatBGV">
-    <activity android:name=".GlassChatBGV"
+    <activity android:name="com.remap.glassBGV.GlassChatBGV"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

@@ -11,10 +11,9 @@ def getContentFor(uid):
 	obj = db.getMediaFor(uid)
 	return dumps(obj)
 	
-def insertContentFor(uid, content, chatroomID):
-	db.insertMediaFor(uid, content, chatroomID)
+def insertContentFor(uid, content, chatroomID, queryString):
+	db.insertMediaFor(uid, content, chatroomID, queryString)
 	return 'data = { "content": "ok"}'
-	
 
 def testInsertMediaFor(uid):
 	content = "this is db content 0 "+uid+" <br> <img src=\'http://sociorocketnewsen.files.wordpress.com/2013/07/nyan-gif-original.gif\' />"
