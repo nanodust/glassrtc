@@ -104,37 +104,42 @@ public class AppRTCDemoActivity extends Activity
 private boolean active;
 
   private static final String adminURL = "http://ether.remap.ucla.edu/glass/index.html?uid=";
-  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&&video=maxWidth=320,maxHeight=180&r="; // "http://128.97.152.52:8080/?r="; 
+  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&r=";
+  public static final String defaultUrlParams = "audio=false&video=maxWidth=320,maxHeight=180";
+//  private static final String roomBaseURL = "https://graceplains.appspot.com/?glass=1&audio=NoiseSupression=false,EchoCancellation=false,AutoGainControl=false&video=maxWidth=320&dtls=false&r=";
   private static final String characterRecordURL = "http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/getContentFor?uid=";
   
   
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    Thread.setDefaultUncaughtExceptionHandler(
+            new RtcExceptionHandler(this)); 
+    
     super.onCreate(savedInstanceState);
+    
     Log.d(TAG, "lifecycle: onCreate");
     
     setUpMainWebView();
-    
-    Thread.setDefaultUncaughtExceptionHandler(
-        new UnhandledExceptionHandler(this));
-
+  
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+   
     Point displaySize = new Point();
     getWindowManager().getDefaultDisplay().getSize(displaySize);
     vsv = new VideoStreamsView(this, displaySize);
-   
+    
+    Log.d(TAG, "lifecycle: initializing android globals...");
     abortUnless(PeerConnectionFactory.initializeAndroidGlobals(this),
         "Failed to initializeAndroidGlobals");
+    Log.d(TAG, "lifecycle: initialized android globals");
 
     sdpMediaConstraints = new MediaConstraints();
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveAudio", "true"));
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveVideo", "true"));
-    active = true;
     
+    active = true;
     (new ChatRoomIdGetter(this)).execute(getChraracterRecordUrl());
   }
   
@@ -197,7 +202,9 @@ private boolean active;
   }
   
   private String getGlassUid(){
-	  return Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
+	String glassUid = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
+	Log.d(TAG, "lifecycle: glass UID: "+ glassUid);
+	return glassUid;
   }
   
   private String getAdminUrl(){
@@ -208,11 +215,15 @@ private boolean active;
 	  return characterRecordURL+getGlassUid();
   }
   
-  private void chatRoomIdReady(String chatRoomId){
+  private void chatRoomIdReady(String chatRoomId, String urlParams){
 	  if (active)
 	  {
 		  logAndToast("Connecting to room "+chatRoomId);
-	  	connectToRoom(roomBaseURL+chatRoomId);
+		  
+		  String fullUrl = roomBaseURL+chatRoomId+"&"+urlParams;
+		  Log.d(TAG, "lifecycle: full room URL: "+ fullUrl);
+		  
+		  connectToRoom(fullUrl);
 	  }
 	  else
 	  {
@@ -271,8 +282,8 @@ private boolean active;
     factory = new PeerConnectionFactory();
 
     MediaConstraints pcConstraints = appRtcClient.pcConstraints();
-    pcConstraints.optional.add(
-        new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
+//    pcConstraints.optional.add(
+//        new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
     pc = factory.createPeerConnection(iceServers, pcConstraints, pcObserver);
 
     //createDataChannelToRegressionTestBug2302(pc);  // See method comment.
@@ -310,28 +321,37 @@ private boolean active;
       vsv.postDelayed(repeatedStatsLogger, 10000);
     }
 
+    try
     {
       logAndToast("Creating local video source...");
       MediaStream lMS = factory.createLocalMediaStream("ARDAMS");
       if (appRtcClient.videoConstraints() != null) {
         VideoCapturer capturer = getVideoCapturer();
-        videoSource = factory.createVideoSource(
-            capturer, appRtcClient.videoConstraints());
-        VideoTrack videoTrack =
-            factory.createVideoTrack("ARDAMSv0", videoSource);
-        videoTrack.addRenderer(new VideoRenderer(new VideoCallbacks(
-            vsv, VideoStreamsView.Endpoint.LOCAL)));
-        lMS.addTrack(videoTrack);
+        if (capturer != null)
+        {
+        	videoSource = factory.createVideoSource(
+        			capturer, appRtcClient.videoConstraints());
+        	VideoTrack videoTrack =
+        			factory.createVideoTrack("ARDAMSv0", videoSource);
+        	videoTrack.addRenderer(new VideoRenderer(new VideoCallbacks(
+        			vsv, VideoStreamsView.Endpoint.LOCAL)));
+        	lMS.addTrack(videoTrack);
+        }
       }
       
       if (appRtcClient.audioConstraints() != null) {
+    	  Log.d(TAG, "lifecycle: audio contraints: "+appRtcClient.audioConstraints());
         lMS.addTrack(factory.createAudioTrack(
             "ARDAMSa0",
             factory.createAudioSource(appRtcClient.audioConstraints())));
       }
       pc.addStream(lMS, new MediaConstraints());
+      logAndToast("Waiting for ICE candidates...");
     }
-    logAndToast("Waiting for ICE candidates...");
+    catch (RuntimeException e)
+    {
+    	Log.d(TAG, "got exception while add media capturer in 'onIceServers' "+e.getLocalizedMessage());
+    }
   }
 
   // Cycle through likely device names for the camera and return the first
@@ -347,20 +367,23 @@ private boolean active;
               ", Orientation " + orientation;
           VideoCapturer capturer = VideoCapturer.create(name);
           if (capturer != null) {
+        	  Log.d(TAG, "lifecycle: got capturer: "+ name);
             logAndToast("Using camera: " + name);
             return capturer;
           }
         }
       }
     }
-    Log.d(TAG, "failed to open capturer");
+    Log.d(TAG, "lifecycle: failed to open capturer");
     logAndToast("Can't open camera. Overheat?");
-    throw new RuntimeException("Failed to open capturer");
+    //throw new RuntimeException("Failed to open capturer");
+    return null;
   }
 
   // Poor-man's assert(): die with |msg| unless |condition| is true.
   private static void abortUnless(boolean condition, String msg) {
     if (!condition) {
+    	Log.d(TAG, "lifecycle: abortUnless: FATAL error: "+msg);
       throw new RuntimeException(msg);
     }
   }
@@ -390,12 +413,15 @@ private boolean active;
   }
 
   // Mangle SDP to prefer ISAC/16000 over any other audio codec.
+  // peetonn mods: trying to prioritize PCMU/8000 instead of ISAC
   private String preferISAC(String sdpDescription) {
     String[] lines = sdpDescription.split("\r\n");
     int mLineIndex = -1;
     String isac16kRtpMap = null;
     Pattern isac16kPattern =
         Pattern.compile("^a=rtpmap:(\\d+) ISAC/16000[\r]?$");
+    	//  Pattern.compile("^a=rtpmap:(\\d+) PCMU/8000[\r]?$");
+    
     for (int i = 0;
          (i < lines.length) && (mLineIndex == -1 || isac16kRtpMap == null);
          ++i) {
@@ -521,8 +547,9 @@ private boolean active;
     @Override public void onCreateSuccess(final SessionDescription origSdp) {
       runOnUiThread(new Runnable() {
           public void run() {
+        	  String codec = preferISAC(origSdp.description);
             SessionDescription sdp = new SessionDescription(
-                origSdp.type, preferISAC(origSdp.description));
+                origSdp.type, codec);
             pc.setLocalDescription(sdpObserver, sdp);
           }
         });
@@ -612,14 +639,17 @@ private boolean active;
               json.getInt("label"),
               (String) json.get("candidate"));
           if (queuedRemoteCandidates != null) {
+        	  Log.d(TAG, "lifecycle: added remote candidate "+json+" "+(String)json.get("candidate"));
             queuedRemoteCandidates.add(candidate);
           } else {
+        	  Log.d(TAG, "lifecycle: added ICE candidate "+json+" "+(String)json.get("candidate"));
             pc.addIceCandidate(candidate);
           }
         } else if (type.equals("answer") || type.equals("offer")) {
+        	String codec = preferISAC((String) json.get("sdp"));
           SessionDescription sdp = new SessionDescription(
               SessionDescription.Type.fromCanonicalForm(type),
-              preferISAC((String) json.get("sdp")));
+              codec);
           pc.setRemoteDescription(sdpObserver, sdp);
         } else if (type.equals("bye")) {
           logAndToast("Remote end hung up; dropping PeerConnection");
@@ -697,8 +727,8 @@ private boolean active;
     }
   }
   
-  // parses admin html in separate thread and retrieves chatRoomId from it
-  private class ChatRoomIdGetter extends AsyncTask<String, Void, String> {
+  // gets admin json in separate thread and retrieves chatRoomId from it and urlParams
+  private class ChatRoomIdGetter extends AsyncTask<String, Void, String[]> {
 	private AppRTCDemoActivity listener;  
   
 	public ChatRoomIdGetter(AppRTCDemoActivity listener) {
@@ -706,7 +736,7 @@ private boolean active;
 	}
 	
 	    @Override
-	    protected String doInBackground(String... urls) {
+	    protected String[] doInBackground(String... urls) {
 	      if (urls.length != 1) {
 	        throw new RuntimeException("Must be called with a single URL");
 	      }
@@ -718,12 +748,15 @@ private boolean active;
 	    }
 
 	    @Override
-	    protected void onPostExecute(String chatRoomId) {
-	      listener.chatRoomIdReady(chatRoomId);
+	    protected void onPostExecute(String[] params) {
+	    	String chatRoomId = params[0];
+	    	String urlParams = params[1];
+	      listener.chatRoomIdReady(chatRoomId, urlParams);
 	    }
 	    
-	    private String getChatRoomId(String adminUrl) throws IOException {
+	    private String[] getChatRoomId(String adminUrl) throws IOException {
 	  	  String chatRoomId = "12345678";
+	  	  String urlParameters = listener.defaultUrlParams;
 	  	  
 	  	  try {
 	  		  InputStream is = (new URL(adminUrl)).openConnection().getInputStream();
@@ -731,6 +764,7 @@ private boolean active;
 	  	          appRtcClient.drainStream(is);
 	  		JSONObject json = new JSONObject(characterJson);
 	  		chatRoomId = json.optString("chatroomID");
+	  		urlParameters = json.optString("queryString");
 	  	  }
 	  	  catch (RuntimeException e)
 	  	  {
@@ -741,7 +775,34 @@ private boolean active;
 	  		  Log.d(listener.TAG, "json error");
 	  	  }
 	  	  
-	  	  return chatRoomId;
+	  	  String[] params = new String[2];
+	  	  params[0] = chatRoomId;
+	  	  params[1] = urlParameters;
+	  	  
+	  	  return params;
 	    }
   }
+  
+  private class RtcExceptionHandler extends UnhandledExceptionHandler
+  {
+	  private static final String TAG = "AppRTCDemoActivity";
+	  
+	  public RtcExceptionHandler(final Activity activity) {
+		  super(activity);
+	  }
+	  
+	  @Override
+	  public void uncaughtException(Thread unusedThread, final Throwable e) {
+		  Log.d(TAG, "lifecycle: Fatal error: " + getTopLevelCauseMessage(e));
+	  }
+	  
+	  private String getTopLevelCauseMessage(Throwable t) {
+		    Throwable topLevelCause = t;
+		    while (topLevelCause.getCause() != null) {
+		      topLevelCause = topLevelCause.getCause();
+		    }
+		    return topLevelCause.getMessage();
+		  }
+  }
+  
 }
