@@ -31,7 +31,7 @@ removed the refresh history button
 
 			<div id="scriptBoxDiv" class="boxClass">Script Box
 			</div>
-			<textarea id="inputBox" name="scriptInput" class="boxClass" value="Script box for input text" onkeydown="inputBoxKeydown(event)" onkeyup="inputBoxKeyup()"></textarea>
+			<textarea id="inputBox" name="scriptInput" class="boxClass" value="Script box for input text" onkeydown="inputBoxKeydown(event)" onkeyup="inputBoxKeyup(event)"></textarea>
 
 			<div id="previewDiv" class="boxClass">Preview box for the text
 			</div>
@@ -51,11 +51,11 @@ removed the refresh history button
 			</div>
 			
 			<div id="rightButtonsDiv">
-				<input type="button" value="Red card" onclick="sendRedCard()"></input>
+				<input type="button" value="Red" onclick="sendRedCard()"></input>
 				<br>
-				<input type="button" value="Push debug" onclick="debugPlayer()"></input>
+				<input type="button" value="Debug" onclick="debugPlayer()"></input>
 				<br>
-				<input type="button" value="Send clear" onclick="sendClear()"></input>
+				<input type="button" value="Clear" onclick="sendClear()"></input>
 			</div>
 			
 			<div id="adminNameDiv">

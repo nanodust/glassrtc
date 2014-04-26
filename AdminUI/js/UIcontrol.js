@@ -27,6 +27,9 @@ var KEYNINE = 57;
 var KEYR = 82;
 var KEYD = 68;
 var KEYC = 67;
+var KEYA = 65;
+
+var MAXNUM = 8;
 
 //global vars for num of players and player name array
 var nameList = new Array();
@@ -69,6 +72,8 @@ function sendClick()
 		}
 	}
 	inputPreview();
+	document.getElementById('inputBox').value = "";
+	//remove input text after sending
 }
 
 //Generate input preview in previewDiv
@@ -82,9 +87,12 @@ function inputPreview()
 //onkeydown happens before the letter appears, so we want to check if it's enter, and if it is, block it.
 
 //inputBox onkeyup event
-function inputBoxKeyup()
+function inputBoxKeyup(event)
 {
-	inputPreview();
+	if (event.keyCode != KEYENTER)
+	{
+		inputPreview();
+	}
 }
 
 //inputBox onkeydown event
@@ -307,6 +315,8 @@ function scriptKeydown(event, num)
 		//.focus();
 		
 		currentIdx = num;
+
+		//event.preventDefault();
 		inputPreview();
 	}
 }
@@ -314,52 +324,20 @@ function scriptKeydown(event, num)
 //should merge these two functions
 function sendRedCard()
 {
-	for (var i = 0; i<characterNum; i++)
-	{
-		if (document.getElementById('send' + i).checked == true)
-		{
-			var pushMsg = "<img src=\"red.jpg\"></img>";
-			send(i, pushMsg);
-			//format for history and writing to spreadsheet
+	var pushMsg = "<img src=\"red.jpg\"></img>";
+	document.getElementById('inputBox').value = pushMsg;
+	//format for history and writing to spreadsheet
 			
-			var currentTime = new Date();
-			var timeStamp = currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds() + "." + Math.round(currentTime.getMilliseconds() / 100);
-			
-			var sender = document.getElementById('adminName').value;
-			var receiver = nameList[i].charactername;
-			
-			document.getElementById('historyBox').value = timeStamp + ": " + sender + " => " + receiver + " : \'" + pushMsg + "\'\n" + document.getElementById('historyBox').value;
-			
-			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
-			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line="+pushMsg;
-			$.get(url);
-		}
-	}
+	sendClick();
 }
 
 function sendClear()
 {
-	for (var i = 0; i<characterNum; i++)
-	{
-		if (document.getElementById('send' + i).checked == true)
-		{
-			var pushMsg = "";
-			send(i, pushMsg);
-			//format for history and writing to spreadsheet
+	var pushMsg = "";
+	document.getElementById('inputBox').value = pushMsg;
+	//format for history and writing to spreadsheet
 			
-			var currentTime = new Date();
-			var timeStamp = currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds() + "." + Math.round(currentTime.getMilliseconds() / 100);
-			
-			var sender = document.getElementById('adminName').value;
-			var receiver = nameList[i].charactername;
-			
-			document.getElementById('historyBox').value = timeStamp + ": " + sender + " => " + receiver + " :  cmd>cleared\n" + document.getElementById('historyBox').value;
-			
-			timeStamp = (currentTime.getMonth() + 1) + "." + currentTime.getDate() + " " + timeStamp;
-			url = "php/TestCode.php?time="+timeStamp+"&sender="+sender+"&receiver="+receiver+"&line=cmd>cleared";
-			$.get(url);
-		}
-	}	
+	sendClick();
 }
 
 function debugPlayer()
@@ -447,7 +425,7 @@ function storeCharacterMap(data, tabletop)
 	//characterNum = 0;
 	//nameList = new Array();
 	var idx = -1;
-	for (var i = 0; i < data.length; i++)
+	for (var i = 0; i < data.length && i < MAXNUM; i++)
 	{
 		//jquery.inarray works when using nameList.charactername as input
 		idx = indexOfNameList(data[i].charactername);
@@ -464,27 +442,27 @@ function storeCharacterMap(data, tabletop)
 				nameList[idx].chatroomid = data[i].chatroomid;
 				nameList[idx].querystring = data[i].querystring;
 			
-			//no this is cheap, and it's not the way I want it...add backend python script for this function
+				//no this is cheap, and it's not the way I want it...add backend python script for this function
 				send(idx, ""); 
 			
-			//definitely not the best way to do it, but it should work...somehow it does not...
-    		/*
-    		var xobj = new XMLHttpRequest();
-    		xobj.overrideMimeType("application/json");
-    		xobj.open('GET', 'http://ether.remap.ucla.edu/glass/data.py/getContentFor?uid='+nameList[idx].uid, true);
-    		//console.log('loading data');
-    		xobj.onreadystatechange = function () 
-    		{
-    			console.log(xobj.responseText);
-        		if (xobj.readyState == 4) 
-        		{
-            		var status = eval('(' + xobj.responseText + ')');
-            		console.log(nameList[idx].chatroomid);
-            		send(idx, status.content);
-        		}
-    		}
-    		xobj.send(null);
-    		*/
+				//not the best way to do it, but it should work...somehow it does not...
+    			/*
+    			var xobj = new XMLHttpRequest();
+    			xobj.overrideMimeType("application/json");
+    			xobj.open('GET', 'http://ether.remap.ucla.edu/glass/graceplains/backup/web/data.py/getContentFor?uid='+nameList[idx].uid, true);
+    		
+    			xobj.onreadystatechange = function () 
+    			{
+    				if (xobj.readyState == 4) 
+        			{
+            			var status = eval('(' + xobj.responseText + ')');
+            			console.log(status.content);
+            		
+            			send(idx, status.content);
+        			}
+    			}
+    			xobj.send(null);
+    			*/
     		}
 		}
 	}
@@ -515,7 +493,7 @@ function generatePlayerList(data, tabletop)
 	
 	if (!USEGLASSCHAT)
 	{
-		for (var i = 0; i < data.length; i++)
+		for (var i = 0; i < data.length && i < MAXNUM; i++)
 		{
 			if (indexOfNameList(data[i].charactername) == -1 && data[i].charactername != "Anyone")
 			{
@@ -529,7 +507,7 @@ function generatePlayerList(data, tabletop)
 	var checked = "";
 	var enabled = "";
 	
-	for (var i = 0; i < characterNum; i++)
+	for (var i = 0; i < characterNum && i < MAXNUM; i++)
 	{
 		if (document.getElementById('send' + i) != null)
 		{
@@ -614,14 +592,27 @@ function documentKeydown(event)
 {
 	if (event.keyCode > KEYZERO && event.keyCode <= KEYNINE && event.ctrlKey)
 	{
-		var objId = 'send' + (event.keyCode - KEYZERO - 1).toString();
-		var obj = document.getElementById(objId);
-		if (obj != null)
+		if (!event.shiftKey)
 		{
-			if (obj.disabled == false)
+			var objId = 'send' + (event.keyCode - KEYZERO - 1).toString();
+			var obj = document.getElementById(objId);
+			if (obj != null)
+			{
+				if (obj.disabled == false)
+				{
+					obj.checked = !obj.checked;
+					checkSend(obj);
+				}
+			}
+		}
+		else
+		{
+			var objId = 'lock' + (event.keyCode - KEYZERO - 1).toString();
+			var obj = document.getElementById(objId);
+			if (obj != null)
 			{
 				obj.checked = !obj.checked;
-				checkSend(obj);
+				checkLock(obj);
 			}
 		}
 	}
@@ -636,6 +627,22 @@ function documentKeydown(event)
 	if (event.keyCode == KEYC && event.ctrlKey)
 	{
 		sendClear();
+	}
+	if (event.keyCode == KEYA && event.ctrlKey)
+	{
+		selectAll();
+	}
+}
+
+function selectAll()
+{
+	for (var i = 0; i < characterNum; i++)
+	{
+		if (document.getElementById('lock' + i).checked)
+		{
+			document.getElementById('send' + i).checked = true;
+			checkSend(document.getElementById('send' + i));
+		}
 	}
 }
 
