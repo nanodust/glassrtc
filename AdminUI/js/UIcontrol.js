@@ -232,7 +232,7 @@ function selectPhrase(idx)
 		if (num != -1)
 		{
 			document.getElementById('inputBox').value = lineEscapeWhenToPush;
-			for (var i = 0; i < characterNum; i++)
+			for (var i = 0; i < characterNum && i < MAXNUM; i++)
 			{
 				if (i!=num)
 				{
