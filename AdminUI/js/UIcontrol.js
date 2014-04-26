@@ -425,7 +425,7 @@ function storeCharacterMap(data, tabletop)
 	//characterNum = 0;
 	//nameList = new Array();
 	var idx = -1;
-	for (var i = 0; i < data.length && i < MAXNUM; i++)
+	for (var i = 0; i < data.length; i++)
 	{
 		//jquery.inarray works when using nameList.charactername as input
 		idx = indexOfNameList(data[i].charactername);
