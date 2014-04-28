@@ -1,17 +1,11 @@
 //GPAdmin UI code by Zhehao on Apr 15th, 2014
 
 //GPAdmin UI log quick fixes:
-//quick fixes for automatically loading ampping sheet
-//cheap hack for loading: expecting character not added or dismissed.
-//only load the phrases the first time character's loaded.
-
-//key scrolling is broken for filtering phrases
-
-//USEGLASSCHAT macro defines whether we use glass chat code and glass uids
+//!USEGLASSCHAT may not be working, haven't tested afterwards.
 
 //focusing is weird when somebody's enabled or disabled
 
-//should re-organize the script, regularize the naming schemes and simplify the process.
+//reorganize the js files, helpDiv, and button areas.
 
 var USEGLASSCHAT = true;
 
@@ -47,7 +41,7 @@ var whenToPushEnabled = true;
 //Send button click or similar action: calls send(uid, what, chatroomID) and logging using PHP code
 function sendClick()
 {
-	for (var i = 0; i<characterNum; i++)
+	for (var i = 0; i<characterNum && i < MAXNUM; i++)
 	{
 		if (document.getElementById('send' + i).checked == true)
 		{
@@ -342,7 +336,7 @@ function sendClear()
 
 function debugPlayer()
 {
-	for (var i = 0; i<characterNum; i++)
+	for (var i = 0; i < characterNum && i < MAXNUM; i++)
 	{
 		if (document.getElementById('send' + i).checked == true)
 		{
@@ -443,9 +437,12 @@ function storeCharacterMap(data, tabletop)
 				nameList[idx].querystring = data[i].querystring;
 			
 				//no this is cheap, and it's not the way I want it...add backend python script for this function
+				//re-enabled for updating the remote code directly
 				send(idx, ""); 
 			
 				//not the best way to do it, but it should work...somehow it does not...
+    			//not sure why the content's empty...
+    			
     			/*
     			var xobj = new XMLHttpRequest();
     			xobj.overrideMimeType("application/json");
@@ -456,7 +453,8 @@ function storeCharacterMap(data, tabletop)
     				if (xobj.readyState == 4) 
         			{
             			var status = eval('(' + xobj.responseText + ')');
-            			console.log(status.content);
+            			console.log("res text : " + xobj.responseText);
+            			console.log("status : " + status);
             		
             			send(idx, status.content);
         			}
@@ -636,7 +634,7 @@ function documentKeydown(event)
 
 function selectAll()
 {
-	for (var i = 0; i < characterNum; i++)
+	for (var i = 0; i < characterNum && i < MAXNUM; i++)
 	{
 		if (document.getElementById('lock' + i).checked)
 		{
