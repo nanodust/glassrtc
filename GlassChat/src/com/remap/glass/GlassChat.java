@@ -38,7 +38,7 @@ public class GlassChat extends Activity {
         WebViewClient wvClient = null;
 		engine.setWebViewClient(wvClient);
         engine.getSettings().setJavaScriptEnabled(true);
-        engine.getSettings().setPluginsEnabled(true);
+        //engine.getSettings().setPluginsEnabled(true);
         
         // load the page for display on glass
         engine.loadUrl(URL+android_id);

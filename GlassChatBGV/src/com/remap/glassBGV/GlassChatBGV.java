@@ -219,8 +219,8 @@ public class GlassChatBGV extends Activity {
 			// this worked, but only when screen is blank
 			recorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
 			recorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
-			//CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
-			CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+			CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
+			//CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
 			recorder.setProfile(cpHigh);
 
 			// this supposedly works, not tested yet
