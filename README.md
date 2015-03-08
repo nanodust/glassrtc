@@ -1,4 +1,6 @@
-#Glass RTC - minor tweaks to the glass-ready code at http://www.webrtc.org/demo
+#Glass RTC 
+
+minor tweaks to the glass-ready code at http://www.webrtc.org/demo
 
 
 we've gotten it to work 30 minutes before overheating, just by limiting screen brightness & resolution (lousy 320x180)  
