@@ -1,5 +1,4 @@
-Glass RTC - minor tweaks to the glass-ready code at http://www.webrtc.org/demo
-
+#Glass RTC - minor tweaks to the glass-ready code at http://www.webrtc.org/demo
 
 
 we've gotten it to work 30 minutes before overheating, just by limiting screen brightness & resolution (lousy 320x180)  
@@ -11,3 +10,13 @@ regarding codecs - the codecs of the TI OMAP CPU (page 3 (http://www.ti.com/lit/
 and while the OMAP 4 bulletin still gives hope for glass optimization / VP8 -  '...with the industry’s broadest support for multimedia codecs available today as well as programmability to add support for future codecs' 
 
 beyond what we were able to do in the time we had - but certainly a great target for someone with more resources... 
+
+
+
+#Glass_Client 
+
+is the server-side that supports the text/html part of the glass chat
+
+also a basic 'chat client' that displays HTML to user 
+
+see readme for details

@@ -1,0 +1,32 @@
+<html>
+
+
+<head>
+
+<script type='text/javascript' src='http://code.jquery.com/jquery-git.js'></script>
+<script type='text/javascript' src="http://popcornjs.org/code/dist/popcorn-complete.min.js"></script>
+
+<script type='text/javascript'>
+
+	$(function(){
+		// create our instance of popcorn
+		var popcorn = Popcorn( "#video" );
+
+		// set it to autoplay
+		popcorn.autoplay( true );
+
+	});
+</script>
+
+</head>
+
+<body>
+
+<video height="180" width="300" id="video" controls> 
+<source src="http://videos.mozilla.org/serv/webmademovies/popcornplug.mp4"></source>
+<source src="http://videos.mozilla.org/serv/webmademovies/popcornplug.ogv"></source>
+<source src="http://videos.mozilla.org/serv/webmademovies/popcornplug.webm"></source>
+</video>
+
+</body>
+</html>
